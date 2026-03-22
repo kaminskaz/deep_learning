@@ -8,7 +8,16 @@ from torch.nn import init
 
 
 class SeparableConv2d(nn.Module):
-    def __init__(self,in_channels,out_channels,kernel_size=1,stride=1,padding=0,dilation=1,bias=False):
+    def __init__(
+            self,
+            in_channels,
+            out_channels,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            dilation=1,
+            bias=False
+        ):
         super(SeparableConv2d,self).__init__()
 
         self.conv1 = nn.Conv2d(in_channels,in_channels,kernel_size,stride,padding,dilation,groups=in_channels,bias=bias)
@@ -19,7 +28,15 @@ class SeparableConv2d(nn.Module):
 
 
 class Block(nn.Module):
-    def __init__(self, in_channels, out_channels, reps, stride=1, start_with_relu=True, grow_first=True):
+    def __init__(
+            self, 
+            in_channels, 
+            out_channels, 
+            reps, 
+            stride=1, 
+            start_with_relu=True, 
+            grow_first=True
+        ):
         super(Block, self).__init__()
 
         super().__init__()
@@ -60,9 +77,10 @@ class Block(nn.Module):
 
 
 class Xception(nn.Module):
-    def __init__(self, num_classes=10):
+    def __init__(self, num_classes=10, dropout_rate=0.5):
         super().__init__()
         self.num_classes = num_classes
+        self.dropout_rate = dropout_rate
 
         # ------- entry flow --------
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3 , stride=2, padding=1, bias=False)
@@ -99,6 +117,10 @@ class Xception(nn.Module):
         )
 
         self.fc = nn.Linear(2048, num_classes)
+        if dropout_rate > 0:
+            self.dropout = nn.Dropout(dropout_rate)
+        else:
+            self.dropout = nn.Identity()
 
         self._init_weights()
 
@@ -132,6 +154,7 @@ class Xception(nn.Module):
             x = F.relu(self.bn4(self.conv4(x)))
 
             x = self.global_pool(x)
+            x = self.dropout(x)
             x = self.fc(x)
 
             return x
