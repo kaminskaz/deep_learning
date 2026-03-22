@@ -1,0 +1,4 @@
+mode: "different"          # same, different, combine
+p: 0.5
+x_splits_number: 2
+y_splits_number: 2

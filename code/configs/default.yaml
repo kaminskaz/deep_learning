@@ -1,0 +1,30 @@
+# model
+model: "xception"          # resnet50, xception, efficientnetb4
+num_classes: 10
+dropout_rate: 0.5
+
+# training
+num_epochs: 3
+batch_size: 64
+patience: 5
+seed: 42
+device: "mps"              # cpu, cuda, mps
+
+# optimizer
+optimizer: "sgd"           # sgd, adam
+learning_rate: 0.05
+momentum: 0.9              # only for sgd
+
+# scheduler
+scheduler: "cosine"        # cosine
+
+# data
+train_dir: "./data_test/train"
+val_dir:   "./data_test/valid"
+
+# transforms:
+preset: "medium"           # none, light, medium, heavy 
+augmentor_config: "code/configs/augmentor.yaml"
+
+# paths
+model_path: "./saved_models"
