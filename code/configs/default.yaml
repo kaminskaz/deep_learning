@@ -11,7 +11,7 @@ seed: 42
 device: "mps"              # cpu, cuda, mps
 
 # optimizer
-optimizer: "sgd"           # sgd, adam
+optimizer: "adam"           # sgd, adam
 learning_rate: 0.1
 momentum: 0.9              # only for sgd
 
