@@ -143,11 +143,11 @@ def build_optimizer(model: nn.Module, cfg: TrainingConfig) -> torch.optim.Optimi
 
 
 def main():
-    show_augmentation_preview = False 
+    show_augmentation_preview = False
     parser = argparse.ArgumentParser(description="Train a model on CINIC-10")
     parser.add_argument('--config', type=str, default='code/configs/default.yaml',
                         help='Path to training config YAML file')
-    parser.add_argument('--version', type=str, default='v1',)
+    parser.add_argument('--version', type=str, default='v1')
     args = parser.parse_args()
 
     cfg = load_config(args.config)
@@ -158,7 +158,9 @@ def main():
 
     # ── augmentor ──────────────────────────────────────────────
     augmentor_config = None
-    if cfg.augmentor_config:
+    print(f"Augmentor config: {cfg.augmentor_config}")
+    
+    if cfg.augmentor_config != "None":
         augmentor_config = load_augmentor_config(cfg.augmentor_config)
 
     # ── dataloaders ────────────────────────────────────────────
@@ -204,7 +206,7 @@ def main():
     )
 
     # ── save ───────────────────────────────────────────────────
-    dirname = f"{cfg.model_path}/{cfg.model}/"
+    dirname = f"{cfg.model_path}/{cfg.model}"
     os.makedirs(dirname, exist_ok=True)
     save_path = f"{dirname}/{cfg.model}_{args.version}.pth"
     torch.save({'model': trained_model.state_dict(), 'history': history}, save_path)
