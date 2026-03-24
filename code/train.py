@@ -127,15 +127,17 @@ def build_model(cfg: TrainingConfig) -> nn.Module:
 
 def build_optimizer(model: nn.Module, cfg: TrainingConfig) -> torch.optim.Optimizer:
     optimizers = {
-        'sgd':   lambda: torch.optim.SGD(
-                     model.parameters(),
-                     lr=cfg.learning_rate,
-                     momentum=cfg.momentum
-                 ),
-        'adam':  lambda: torch.optim.Adam(
-                     model.parameters(),
-                     lr=cfg.learning_rate
-                 )}
+        'sgd':  lambda: torch.optim.SGD(
+                    model.parameters(),
+                    lr=cfg.learning_rate,
+                    momentum=cfg.momentum,
+                    weight_decay=cfg.weight_decay
+                ),
+        'adam': lambda: torch.optim.Adam(
+                    model.parameters(),
+                    lr=cfg.learning_rate,
+                    weight_decay=cfg.weight_decay
+                )}
     
     if cfg.optimizer not in optimizers:
         raise ValueError(f"Unknown optimizer '{cfg.optimizer}'. Choose from: {list(optimizers.keys())}")
@@ -155,12 +157,13 @@ def main():
 
     print(f"Loaded config: {args.config}")
     print(f"Device: {cfg.device} | Model: {cfg.model} | Epochs: {cfg.num_epochs}")
+    print(f"Optimizer: {cfg.optimizer} | Learning Rate: {cfg.learning_rate} | Weight Decay: {cfg.weight_decay}")
 
     # ── augmentor ──────────────────────────────────────────────
     augmentor_config = None
     print(f"Augmentor config: {cfg.augmentor_config}")
     
-    if cfg.augmentor_config != "None":
+    if cfg.augmentor_config is not None:
         augmentor_config = load_augmentor_config(cfg.augmentor_config)
 
     # ── dataloaders ────────────────────────────────────────────

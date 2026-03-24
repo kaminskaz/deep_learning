@@ -30,6 +30,7 @@ class TrainingConfig:
     optimizer: str = 'adam'
     learning_rate: float = 0.05
     momentum: float = 0.9
+    weight_decay: float = 1e-4
 
     # scheduler
     scheduler: str = 'cosine'
