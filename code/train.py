@@ -30,6 +30,7 @@ def train(
     num_epochs: int = 30,
     patience: int = 5,
     device: str | torch.device = "cpu",
+    lambda_param: float = 0.0,
 ) -> Tuple[nn.Module, Dict[str, List[float]]]:
 
     history = {
@@ -59,6 +60,7 @@ def train(
             optimizer.zero_grad()
             outputs = model(inputs.to(device))
             loss = criterion(outputs, targets.to(device))
+            loss += _l1_regularization(model, lambda_param)
             loss.backward()
             optimizer.step()
 
@@ -113,6 +115,9 @@ def train(
 
     return model, history
 
+def _l1_regularization(model, l1_lambda: float) -> torch.Tensor:
+    l1_norm = sum(p.abs().sum() for p in model.parameters())
+    return l1_lambda * l1_norm
 
 def build_model(cfg: TrainingConfig) -> nn.Module:
     models = {
@@ -131,12 +136,12 @@ def build_optimizer(model: nn.Module, cfg: TrainingConfig) -> torch.optim.Optimi
                     model.parameters(),
                     lr=cfg.learning_rate,
                     momentum=cfg.momentum,
-                    weight_decay=cfg.weight_decay
+                    weight_decay=cfg.lambda_param if cfg.regularization == 'l2' else 0.0
                 ),
         'adam': lambda: torch.optim.Adam(
                     model.parameters(),
                     lr=cfg.learning_rate,
-                    weight_decay=cfg.weight_decay
+                    weight_decay=cfg.lambda_param if cfg.regularization == 'l2' else 0.0
                 )}
     
     if cfg.optimizer not in optimizers:
@@ -157,7 +162,7 @@ def main():
 
     print(f"Loaded config: {args.config}")
     print(f"Device: {cfg.device} | Model: {cfg.model} | Epochs: {cfg.num_epochs}")
-    print(f"Optimizer: {cfg.optimizer} | Learning Rate: {cfg.learning_rate} | Weight Decay: {cfg.weight_decay}")
+    print(f"Optimizer: {cfg.optimizer} | Learning Rate: {cfg.learning_rate} | Lambda regularization: {cfg.lambda_param}")
 
     # ── augmentor ──────────────────────────────────────────────
     augmentor_config = None
@@ -206,6 +211,7 @@ def main():
         num_epochs=cfg.num_epochs,
         patience=cfg.patience,
         device=torch.device(cfg.device),
+        lambda_param=cfg.lambda_param if cfg.regularization == 'l1' else 0.0
     )
 
     # ── save ───────────────────────────────────────────────────

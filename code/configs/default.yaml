@@ -14,7 +14,10 @@ device: "mps"              # cpu, cuda, mps
 optimizer: "adam"           # sgd, adam
 learning_rate: 0.1
 momentum: 0.9              # only for sgd
-weight_decay: !!float 1e-4
+
+# regularization
+regularization: 'l2'  # l1, l2, null
+lambda_param: !!float 1e-4
 
 # scheduler
 scheduler: "cosine"        # cosine
