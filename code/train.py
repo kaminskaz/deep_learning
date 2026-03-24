@@ -85,16 +85,20 @@ def train(
 
         print(f"Epoch {epoch}/{num_epochs} -> Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
 
-        if (epoch) % 5 == 0:
-                torch.save({
-                    'epoch':                epoch,
-                    'model_state_dict':     model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'val_loss':             val_loss,
-                    'history':              history
-                }, f"checkpoint_epoch{epoch}.pth")
-                print(f"Checkpoint saved at epoch {epoch}")
+        # if (epoch) % 5 == 0:
+        #         torch.save({
+        #             'epoch':                epoch,
+        #             'model_state_dict':     model.state_dict(),
+        #             'optimizer_state_dict': optimizer.state_dict(),
+        #             'val_loss':             val_loss,
+        #             'history':              history
+        #         }, f"checkpoint_epoch{epoch}.pth")
+        #         print(f"Checkpoint saved at epoch {epoch}")
 
+        if val_loss > 10_000:
+            print("Validation loss is too high, stopping training.")
+            model = None
+            break
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             patience_counter = 0
@@ -104,7 +108,7 @@ def train(
             if patience_counter >= patience:
                 print(f"Early stopping at epoch {epoch}")
                 model.load_state_dict(best_weights)
-                torch.save(best_weights, f"best_model.pth")
+                # torch.save(best_weights, f"best_model.pth")
                 break
         
         history['epoch'].append(epoch)
@@ -214,6 +218,9 @@ def main():
         lambda_param=cfg.lambda_param if cfg.regularization == 'l1' else 0.0
     )
 
+    if trained_model is None:
+        print("Training failed due to high validation loss. No model to save.")
+        return
     # ── save ───────────────────────────────────────────────────
     dirname = f"{cfg.model_path}/{cfg.model}"
     os.makedirs(dirname, exist_ok=True)

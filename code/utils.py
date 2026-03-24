@@ -47,7 +47,14 @@ def get_dataloader(
         seed=seed
     )
 
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=(split=='train'), pin_memory=True)
+    data_loader = DataLoader(
+        dataset,
+        batch_size=batch_size, 
+        shuffle=(split=='train'), 
+        pin_memory=True,
+        num_workers=4,
+        persistent_workers=True if split=='train' else False
+    )
 
     return data_loader
 
