@@ -2,3 +2,5 @@
 data_test/
 data/
 __pycache__/
+saved_models/
+*log*
