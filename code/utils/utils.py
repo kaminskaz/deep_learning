@@ -6,6 +6,10 @@ import random
 from torch.utils.data import DataLoader
 from typing import Any, Dict, List, Optional, Tuple
 import matplotlib.pyplot as plt
+import sys
+
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(parent_dir)
 
 from augmentations.dataset_wrapper import DatasetWrapper
 from configs.config import AugmentorConfig
