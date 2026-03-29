@@ -11,7 +11,7 @@ import numpy as np
 from tqdm import tqdm
 import random
 
-from utils import evaluate, get_dataloader, seed_everything, show_augmentation_effect, show_augmented_samples
+from utils.utils import evaluate, get_dataloader, seed_everything, show_augmentation_effect, show_augmented_samples
 from models.resnet50 import ResNet50
 from models.xception import Xception
 from models.efficientnetb4 import EfficientNetB4
