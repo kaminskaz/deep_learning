@@ -9,7 +9,7 @@ script_to_run = Path("./code/train.py")
 
 # 2. Find all matching files
 # This looks for files starting with 'experiment_1' and ending in '.yaml'
-config_files = list(config_dir.glob("experiment_1*.yaml"))
+config_files = list(config_dir.glob("*experiment_1*.yaml"))
 
 if not config_files:
     print(f"No matching YAML files found in {config_dir}")

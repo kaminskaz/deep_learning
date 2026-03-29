@@ -1,14 +1,14 @@
 # model
 model: "xception"          # resnet50, xception, efficientnetb4
 num_classes: 10
-dropout_rate: 0.0
+dropout_rate: 0.3
 
 # training
 num_epochs: 30
 batch_size: 32
-patience: 3
+patience: 5
 seed: 42
-device: "cuda"              # cpu, cuda, mps
+device: "mps"              # cpu, cuda, mps
 
 # optimizer
 optimizer: "adam"           # sgd, adam
@@ -17,7 +17,7 @@ momentum: 0.9              # only for sgd
 
 # regularization
 regularization: null  # l1, l2, null
-lambda_param: !!float 1e-4
+lambda_param: !!float 1e-3
 
 # scheduler
 scheduler: "cosine"        # cosine
