@@ -1,0 +1,9 @@
+Experiment,Model,L_Value,Accuracy,Precision,Recall,F1_Score
+10shot_50aug_standard_rotate,efficientnetb4,5,53.23,60.61,53.23,53.24
+10shot_50aug_standard_rotate,efficientnetb4,15,54.53,60.63,54.53,54.83
+10shot_50aug_standard_rotate,efficientnetb4,30,54.67,61.89,54.67,54.90
+10shot_50aug_standard_rotate,efficientnetb4,50,55.11,61.88,55.11,55.60
+10shot_50aug_standard_mixed,efficientnetb4,5,55.49,61.31,55.49,55.49
+10shot_50aug_standard_mixed,efficientnetb4,15,54.71,61.13,54.71,55.16
+10shot_50aug_standard_mixed,efficientnetb4,30,55.06,61.04,55.06,55.07
+10shot_50aug_standard_mixed,efficientnetb4,50,53.11,59.59,53.11,52.93

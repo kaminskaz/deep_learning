@@ -25,9 +25,10 @@ def generate_isolated_dataset(
     k: int, 
     l: int, 
     method: str, 
-    aug_name: str = 'random', # Default to random for advanced
+    aug_name: str = 'random', 
     seed: int = 42
 ):
+    # 1. Set seeds first
     random.seed(seed)
     np.random.seed(seed)
     
@@ -35,12 +36,9 @@ def generate_isolated_dataset(
     target_path = Path(target_dir) / f"{k}shot_{l}aug_{method}_{aug_name}"
     
     if target_path.exists():
-        print(f"Warning: Target directory {target_path} already exists. Overwriting...")
         shutil.rmtree(target_path)
     
-    classes = [d.name for d in source_path.iterdir() if d.is_dir()]
-    advanced_aug = Augmentor(p=1.0, seed=seed) if method == 'advanced' else None
-    aug_choices = ['rotate', 'blur', 'noise', 'brightness', 'flip']
+    classes = sorted([d.name for d in source_path.iterdir() if d.is_dir()]) # Sort classes too!
 
     print(f"\n--- Generating dataset: k={k}, l={l}, method={method}, aug={aug_name} ---")
     
@@ -49,16 +47,29 @@ def generate_isolated_dataset(
         cls_target_dir = target_path / cls
         cls_target_dir.mkdir(parents=True, exist_ok=True)
         
+        # 2. CRITICAL: Sort the list so the seed always points to the same index
         all_images = list(cls_source_dir.glob("*.png")) + list(cls_source_dir.glob("*.jpg"))
+        all_images.sort() 
+        
         if len(all_images) < k:
-            continue # Skip if not enough images
+            continue
             
+        # 3. Sample immediately after setting/resetting seed logic if needed
+        # Since we set seed at the start of the function, and we process classes 
+        # in a sorted order, the 'random state' will be identical for every run.
         k_images = random.sample(all_images, k)
         
         # Save originals
         for img_path in k_images:
             shutil.copy(img_path, cls_target_dir / f"orig_{img_path.name}")
             
+        # 4. Now initialize augmentation (after sampling is done)
+        advanced_aug = None
+        if method == 'advanced':
+            advanced_aug = Augmentor(p=1.0, seed=seed)
+            
+        aug_choices = ['rotate', 'blur', 'noise', 'brightness', 'flip']
+
         # Generate augmented samples
         for i in range(l):
             base_img_path = random.choice(k_images)
@@ -70,7 +81,6 @@ def generate_isolated_dataset(
                 augmented_image = transform(image=image)['image']
                 
             elif method == 'advanced':
-                # Randomly pick ONE augmentation for this specific image
                 chosen_aug = random.choice(aug_choices)
                 augmented_image = advanced_aug.augment_image(
                     image=image, 
@@ -83,26 +93,3 @@ def generate_isolated_dataset(
                 
             save_name = f"aug_{i:04d}_{base_img_path.name}"
             cv2.imwrite(str(cls_target_dir / save_name), augmented_image)
-
-    print(f"Saved to: {target_path}")
-
-if __name__ == "__main__":
-    SOURCE_DATA_DIR = "./data/train" 
-    TARGET_DATA_DIR = "./data/augmented_experiments"
-    augmentation_types = ['rotate', 'blur', 'noise', 'brightness', 'flip']
-    
-    k_val = 10  
-    l_val = 50  
-    
-    # 1. Standard Method: One dataset PER augmentation
-    for aug_type in augmentation_types:
-        generate_isolated_dataset(
-            source_dir=SOURCE_DATA_DIR, target_dir=TARGET_DATA_DIR,
-            k=k_val, l=l_val, method='standard', aug_name=aug_type
-        )
-        
-    # 2. Advanced Method: ONE dataset total, randomly picking augmentations per image
-    generate_isolated_dataset(
-        source_dir=SOURCE_DATA_DIR, target_dir=TARGET_DATA_DIR,
-        k=k_val, l=l_val, method='advanced', aug_name='mixed'
-    )
