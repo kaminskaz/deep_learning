@@ -15,8 +15,6 @@ def get_standard_augmentation(aug_name: str):
         'brightness': A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=1.0),
         'flip': A.HorizontalFlip(p=1.0)
     }
-    if aug_name not in augmentations:
-        raise ValueError(f"Unknown standard augmentation: {aug_name}")
     return A.Compose([augmentations[aug_name]])
 
 def generate_isolated_dataset(
@@ -37,9 +35,9 @@ def generate_isolated_dataset(
     if target_path.exists():
         shutil.rmtree(target_path)
     
-    classes = sorted([d.name for d in source_path.iterdir() if d.is_dir()]) # Sort classes too!
+    classes = sorted([d.name for d in source_path.iterdir() if d.is_dir()])
 
-    print(f"\n--- Generating dataset: k={k}, l={l}, method={method}, aug={aug_name} ---")
+    print(f"generating dataset: k={k}, l={l}, method={method}, aug={aug_name}")
     
     for cls in classes:
         cls_source_dir = source_path / cls
@@ -56,8 +54,8 @@ def generate_isolated_dataset(
         
         for img_path in k_images:
             shutil.copy(img_path, cls_target_dir / f"orig_{img_path.name}")
-            
-        advanced_aug = None
+        
+        
         if method == 'advanced':
             advanced_aug = Augmentor(p=1.0, seed=seed)
             

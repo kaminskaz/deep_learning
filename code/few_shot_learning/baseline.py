@@ -19,94 +19,9 @@ if project_root not in sys.path:
 from models.efficientnetb4encoder import EfficientNetB4Encoder
 from models.xceptionencoder import XceptionEncoder
 from models.resnet50encoder import ResNet50Encoder
+from few_shot_phase_3 import VariableKDataset
+from contrastive_evaluation_1 import PrototypicalEvaluator
 
-class VariableKSupportDataset(VisionDataset):
-    """
-    Strictly loads the first 'k_max' original images per class to build prototypes.
-    """
-    def __init__(self, root, k_max, transform=None):
-        super().__init__(root, transform=transform)
-        self.classes = sorted([d.name for d in Path(root).iterdir() if d.is_dir()])
-        self.class_to_idx = {cls_name: i for i, cls_name in enumerate(self.classes)}
-        self.samples = []
-        
-        for cls_name in self.classes:
-            cls_dir = Path(root) / cls_name
-            if cls_dir.is_dir():
-                orig_files = sorted(list(cls_dir.glob("orig_*")))
-                for orig_path in orig_files[:k_max]:
-                    self.samples.append((str(orig_path), self.class_to_idx[cls_name]))
-                
-    def __len__(self):
-        return len(self.samples)
-        
-    def __getitem__(self, index):
-        path, target = self.samples[index]
-        sample = default_loader(path)
-        if self.transform is not None:
-            sample = self.transform(sample)
-        return sample, target
-
-class PrototypicalEvaluator:
-    def __init__(self, encoder, device):
-        self.encoder = encoder.to(device)
-        self.encoder.eval()
-        self.device = device
-        self.prototypes = None
-        self.classes = None
-
-    @torch.no_grad()
-    def compute_prototypes(self, support_loader):
-        embeddings_list = []
-        labels_list = []
-
-        for images, labels in tqdm(support_loader, desc="Extracting Prototypes", leave=False):
-            images = images.to(self.device)
-            embeddings = F.normalize(self.encoder(images), p=2, dim=1)
-            embeddings_list.append(embeddings.cpu())
-            labels_list.append(labels.cpu())
-
-        all_embeddings = torch.cat(embeddings_list)
-        all_labels = torch.cat(labels_list)
-        
-        self.classes = torch.unique(all_labels)
-        num_classes = len(self.classes)
-        embed_dim = all_embeddings.shape[1]
-        
-        self.prototypes = torch.zeros((num_classes, embed_dim))
-
-        for i, cls in enumerate(self.classes):
-            cls_mask = (all_labels == cls)
-            mean_embed = all_embeddings[cls_mask].mean(dim=0)
-            self.prototypes[i] = F.normalize(mean_embed.unsqueeze(0), p=2, dim=1).squeeze(0)
-            
-        self.prototypes = self.prototypes.to(self.device)
-
-    @torch.no_grad()
-    def evaluate(self, query_loader):
-        if self.prototypes is None:
-            raise ValueError("Prototypes not computed.")
-            
-        all_preds = []
-        all_labels = []
-
-        for images, labels in tqdm(query_loader, desc="Evaluating Query Set", leave=False):
-            images, labels = images.to(self.device), labels.to(self.device)
-            embeddings = F.normalize(self.encoder(images), p=2, dim=1)
-            
-            similarities = torch.matmul(embeddings, self.prototypes.T)
-            _, predicted_indices = torch.max(similarities, dim=1)
-            predictions = self.classes.to(self.device)[predicted_indices]
-            
-            all_preds.extend(predictions.cpu().numpy())
-            all_labels.extend(labels.cpu().numpy())
-
-        return {
-            'accuracy': accuracy_score(all_labels, all_preds) * 100,
-            'precision': precision_score(all_labels, all_preds, average='macro', zero_division=0) * 100,
-            'recall': recall_score(all_labels, all_preds, average='macro', zero_division=0) * 100,
-            'f1_score': f1_score(all_labels, all_preds, average='macro', zero_division=0) * 100
-        }
 
 if __name__ == "__main__":
     MASTER_SUPPORT_DIR = Path("./data/augmented_experiments/50shot_0aug_baseline") 
@@ -120,7 +35,7 @@ if __name__ == "__main__":
         raise FileNotFoundError(f"Missing master support directory: {MASTER_SUPPORT_DIR}")
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
-    print(f"\n--- Initializing Raw Pretrained Xception on {device} ---")
+
 
     encoder = XceptionEncoder().to(device)
     encoder.eval()
@@ -131,7 +46,6 @@ if __name__ == "__main__":
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-    print("\nPreparing balanced 10% query set...")
     full_query_dataset = datasets.ImageFolder(root=QUERY_DATA_DIR, transform=transform)
     images_per_class = 900 
     class_counts = {}
@@ -144,19 +58,18 @@ if __name__ == "__main__":
             
     query_subset = Subset(full_query_dataset, subset_indices)
     query_loader = DataLoader(query_subset, batch_size=64, shuffle=False, num_workers=4, pin_memory=True)
-    print(f"Query set ready: {len(query_subset)} total images.")
 
     evaluator = PrototypicalEvaluator(encoder, device)
 
     with open(RESULTS_CSV, mode='a', newline='') as f:
         writer = csv.writer(f)
-        # writer.writerow(['K_Value', 'Model', 'Accuracy', 'Precision', 'Recall', 'F1_Score'])
+        writer.writerow(['K_Value', 'Model', 'Accuracy', 'Precision', 'Recall', 'F1_Score'])
 
         for k_val in K_VALUES:
             print(f"\n{'='*50}")
             print(f"Evaluating Raw Pretrained Weights with K={k_val}")
             
-            support_dataset = VariableKSupportDataset(root=str(MASTER_SUPPORT_DIR), k_max=k_val, transform=transform)
+            support_dataset = VariableKDataset(root=str(MASTER_SUPPORT_DIR), k_max=k_val, transform=transform)
             support_loader = DataLoader(support_dataset, batch_size=32, shuffle=False, num_workers=4, pin_memory=True)
                 
             try:
@@ -176,6 +89,5 @@ if __name__ == "__main__":
                 f.flush() 
                     
             except Exception as e:
-                print(f"Failed to evaluate K={k_val}: {e}")
+                print(f"Failed: {e}")
                     
-    print(f"\nAll done! Baseline results saved to {RESULTS_CSV}")

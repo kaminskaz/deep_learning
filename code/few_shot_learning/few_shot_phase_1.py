@@ -20,7 +20,6 @@ from models.xceptionencoder import XceptionEncoder
 class SupConLoss(nn.Module):
     """
     Supervised Contrastive Learning Loss.
-    Uses Cosine Similarity (via L2 norm + dot product) to pull same classes together.
     """
     def __init__(self, temperature=0.07):
         super(SupConLoss, self).__init__()
@@ -28,12 +27,10 @@ class SupConLoss(nn.Module):
 
     def forward(self, features, labels):
         features = F.normalize(features, p=2, dim=1)
-        
         batch_size = features.shape[0]
         labels = labels.contiguous().view(-1, 1)
         
         mask = torch.eq(labels, labels.T).float().to(features.device)
-
         anchor_dot_contrast = torch.div(torch.matmul(features, features.T), self.temperature)
 
         logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
@@ -56,9 +53,6 @@ class SupConLoss(nn.Module):
         return loss
 
 class ProjectionHeadWrapper(nn.Module):
-    """
-    Wraps the encoder with an MLP projection head for contrastive pretraining.
-    """
     def __init__(self, encoder, embedding_dim, projection_dim=128):
         super().__init__()
         self.encoder = encoder
@@ -125,8 +119,6 @@ def train_supcon(
     elif model_name == 'xception':
         base_encoder = XceptionEncoder()
         embed_dim, img_size = 2048, 299
-    else:
-        raise ValueError("Invalid model name.")
 
     model = ProjectionHeadWrapper(base_encoder, embedding_dim=embed_dim).to(device)
 
@@ -152,11 +144,8 @@ def train_supcon(
             images, labels = images.to(device), labels.to(device)
 
             optimizer.zero_grad()
-            
             projections = model(images)
-            
             loss = criterion(projections, labels)
-            
             loss.backward()
             optimizer.step()
             
@@ -171,7 +160,7 @@ def train_supcon(
     save_path = os.path.join(save_dir, f"{model_name}_{dataset_name}.pth")
     
     torch.save(model.encoder.state_dict(), save_path)
-    print(f"Pretraining complete! Encoder saved to: {save_path}")
+    print(f"saved to: {save_path}")
 
 if __name__ == "__main__":
     EXPERIMENTS_DIR = Path("./data/augmented_experiments")
@@ -182,7 +171,7 @@ if __name__ == "__main__":
     dataset_folders = [f for f in EXPERIMENTS_DIR.iterdir() if f.is_dir()]
     
     if not dataset_folders:
-        print(f"No datasets found in {EXPERIMENTS_DIR}.")
+        print(f"No datasets found ")
     else:
         print(f"Found {len(dataset_folders)} datasets. Starting master training loop...")
         
@@ -192,9 +181,8 @@ if __name__ == "__main__":
             for model_name in MODELS_TO_TEST:
                 expected_save_path = SAVE_DIR / f"{model_name}_{dataset_name}.pth"
                 
-
                 if expected_save_path.exists():
-                    print(f"Skipping {model_name} on {dataset_name}: Already trained!")
+                    print(f"Skipping {model_name} on {dataset_name}: Already trained")
                     continue
                 
                 train_supcon(
@@ -205,4 +193,3 @@ if __name__ == "__main__":
                     learning_rate=1e-4
                 )
         
-        print("\nAll Pretraining Complete!")

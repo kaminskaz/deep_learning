@@ -14,49 +14,9 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 
 from models.efficientnetb4encoder import EfficientNetB4Encoder
-
-
-class SupConLoss(nn.Module):
-    def __init__(self, temperature=0.07):
-        super(SupConLoss, self).__init__()
-        self.temperature = temperature
-
-    def forward(self, features, labels):
-        features = F.normalize(features, p=2, dim=1)
-        batch_size = features.shape[0]
-        labels = labels.contiguous().view(-1, 1)
-        mask = torch.eq(labels, labels.T).float().to(features.device)
-        anchor_dot_contrast = torch.div(torch.matmul(features, features.T), self.temperature)
-        logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
-        logits = anchor_dot_contrast - logits_max.detach()
-        logits_mask = torch.scatter(torch.ones_like(mask), 1, torch.arange(batch_size).view(-1, 1).to(features.device), 0)
-        mask = mask * logits_mask
-        exp_logits = torch.exp(logits) * logits_mask
-        log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True) + 1e-9)
-        mask_pos_pairs = mask.sum(1)
-        mask_pos_pairs = torch.where(mask_pos_pairs < 1e-6, 1.0, mask_pos_pairs)
-        mean_log_prob_pos = (mask * log_prob).sum(1) / mask_pos_pairs
-        return - mean_log_prob_pos.mean()
-
-class ProjectionHeadWrapper(nn.Module):
-    def __init__(self, encoder, embedding_dim, projection_dim=128):
-        super().__init__()
-        self.encoder = encoder
-        self.projection_head = nn.Sequential(nn.Linear(embedding_dim, projection_dim))
-    def forward(self, x):
-        return self.projection_head(self.encoder(x))
-
-def unfreeze_last_n_layers(model, model_name, n=3):
-    for param in model.encoder.parameters(): param.requires_grad = False
-    layers_to_unfreeze = list(model.encoder.model.features.children())[-n:] if model_name == 'efficientnetb4' else []
-    for layer in layers_to_unfreeze:
-        for param in layer.parameters(): param.requires_grad = True
-    for param in model.projection_head.parameters(): param.requires_grad = True
+from few_shot_phase_1 import SupConLoss, ProjectionHeadWrapper, unfreeze_last_n_layers
 
 class VariableKDataset(datasets.VisionDataset):
-    """
-    Loads strictly the first 'k_max' original images per class from a target directory.
-    """
     def __init__(self, root, k_max, transform=None):
         super().__init__(root, transform=transform)
         self.classes = sorted([d.name for d in Path(root).iterdir() if d.is_dir()])
@@ -83,7 +43,7 @@ class VariableKDataset(datasets.VisionDataset):
         return sample, target
 
 
-def train_supcon_k_experiment(
+def train_supcon(
     dataset_path: str, 
     k_value: int,
     epochs: int = 20, 
@@ -94,8 +54,15 @@ def train_supcon_k_experiment(
     model_name = 'efficientnetb4'
     print(f"\n--- Training {model_name} | K={k_value} Shots (l=0) ---")
 
+    # if model_name == 'resnet50':
+    #     base_encoder = ResNet50Encoder()
+    #     embed_dim, img_size = 2048, 224
+    # elif model_name == 'efficientnetb4':
     base_encoder = EfficientNetB4Encoder()
     embed_dim, img_size = 1792, 380
+    # elif model_name == 'xception':
+    #     base_encoder = XceptionEncoder()
+    #     embed_dim, img_size = 2048, 299
 
     model = ProjectionHeadWrapper(base_encoder, embedding_dim=embed_dim).to(device)
     unfreeze_last_n_layers(model, model_name, n=3)
@@ -107,7 +74,6 @@ def train_supcon_k_experiment(
     ])
 
     dataset = VariableKDataset(root=dataset_path, k_max=k_value, transform=transform)
-    print(f"Loaded {len(dataset)} total images ({k_value} per class).")
 
     drop_last = len(dataset) > batch_size
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, drop_last=drop_last)
@@ -145,19 +111,16 @@ if __name__ == "__main__":
     EXPERIMENTS_DIR = Path("./data/augmented_experiments")
     MASTER_DATASET_PATH = EXPERIMENTS_DIR / "50shot_0aug_baseline" 
     
-    if not MASTER_DATASET_PATH.exists():
-        raise FileNotFoundError(f"Missing master dataset at {MASTER_DATASET_PATH}. Run generation script first.")
-    
     K_VALUES = [5, 10, 15, 20, 30, 40, 50]
     
     for k_val in K_VALUES:
         expected_save_path = Path(f"./pretrained_encoders_contrastive/efficientnetb4_baseline_k{k_val}.pth")
         
         if expected_save_path.exists():
-            print(f"Skipping K={k_val}: Already trained!")
+            print(f"Skipping K={k_val}: Already trained")
             continue 
         
-        train_supcon_k_experiment(
+        train_supcon(
             dataset_path=str(MASTER_DATASET_PATH),
             k_value=k_val,
             epochs=20, 

@@ -13,14 +13,13 @@ def generate_50shot_baseline(source_dir: str, target_dir: str, seed: int = 42):
     
     classes = sorted([d.name for d in source_path.iterdir() if d.is_dir()])
     
-    print(f"--- Generating Master 50-Shot Baseline Dataset ---")
     for cls in classes:
         cls_source_dir = source_path / cls
         cls_target_dir = target_path / cls
         cls_target_dir.mkdir(parents=True, exist_ok=True)
         
         all_images = list(cls_source_dir.glob("*.png")) + list(cls_source_dir.glob("*.jpg"))
-        all_images.sort() # Guarantee consistency
+        all_images.sort()
         
         if len(all_images) < 50:
             print(f"Skipping {cls}: Not enough images.")

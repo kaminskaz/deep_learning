@@ -1,5 +1,4 @@
 import os
-import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,75 +7,10 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from torchvision.datasets.folder import default_loader
 from pathlib import Path
-    
-project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
-if project_root not in sys.path:
-    sys.path.append(project_root)
+
 from models.efficientnetb4encoder import EfficientNetB4Encoder
 
-class SupConLoss(nn.Module):
-    def __init__(self, temperature=0.07):
-        super(SupConLoss, self).__init__()
-        self.temperature = temperature
-
-    def forward(self, features, labels):
-        features = F.normalize(features, p=2, dim=1)
-        batch_size = features.shape[0]
-        labels = labels.contiguous().view(-1, 1)
-        
-        mask = torch.eq(labels, labels.T).float().to(features.device)
-        anchor_dot_contrast = torch.div(torch.matmul(features, features.T), self.temperature)
-        
-        logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
-        logits = anchor_dot_contrast - logits_max.detach()
-
-        logits_mask = torch.scatter(
-            torch.ones_like(mask), 1, 
-            torch.arange(batch_size).view(-1, 1).to(features.device), 0
-        )
-        mask = mask * logits_mask
-
-        exp_logits = torch.exp(logits) * logits_mask
-        log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True) + 1e-9)
-
-        mask_pos_pairs = mask.sum(1)
-        mask_pos_pairs = torch.where(mask_pos_pairs < 1e-6, 1.0, mask_pos_pairs)
-        mean_log_prob_pos = (mask * log_prob).sum(1) / mask_pos_pairs
-
-        loss = - mean_log_prob_pos.mean()
-        return loss
-
-class ProjectionHeadWrapper(nn.Module):
-    def __init__(self, encoder, embedding_dim, projection_dim=128):
-        super().__init__()
-        self.encoder = encoder
-        self.projection_head = nn.Sequential(
-            nn.Linear(embedding_dim, projection_dim)
-        )
-
-    def forward(self, x):
-        embeddings = self.encoder(x)
-        projections = self.projection_head(embeddings)
-        return projections
-
-def unfreeze_last_n_layers(model, model_name, n=3):
-    for param in model.encoder.parameters():
-        param.requires_grad = False
-        
-    layers_to_unfreeze = []
-    
-    if model_name == 'efficientnetb4':
-        layers_to_unfreeze = list(model.encoder.model.features.children())[-n:]
-        
-    for layer in layers_to_unfreeze:
-        for param in layer.parameters():
-            param.requires_grad = True
-
-    for param in model.projection_head.parameters():
-        param.requires_grad = True
-
-    trainable_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"[{model_name}] Unfrozen last {n} layers/blocks + projection head. Trainable params: {trainable_count:,}")
+from few_shot_phase_1 import SupConLoss, ProjectionHeadWrapper, unfreeze_last_n_layers
 
 class VariableLDataset(datasets.VisionDataset):
     def __init__(self, root, l_max, transform=None):
@@ -92,12 +26,11 @@ class VariableLDataset(datasets.VisionDataset):
             orig_files = list(cls_dir.glob("orig_*"))
             for orig_path in orig_files:
                 self.samples.append((str(orig_path), self.class_to_idx[cls_name]))
-                
-                orig_name = orig_path.name
-                aug_files = sorted(list(cls_dir.glob(f"aug_*_{orig_name}")))
-                
-                for aug_path in aug_files[:l_max]:
-                    self.samples.append((str(aug_path), self.class_to_idx[cls_name]))
+            
+            all_aug_files = sorted(list(cls_dir.glob("aug_*")))
+            
+            for aug_path in all_aug_files[:l_max]:
+                self.samples.append((str(aug_path), self.class_to_idx[cls_name]))
 
     def __len__(self):
         return len(self.samples)
@@ -112,16 +45,24 @@ class VariableLDataset(datasets.VisionDataset):
 def train_supcon(
     dataset_path: str, 
     model_name: str, 
-    l_value: int,
+    l_value : int,
     epochs: int = 20, 
     batch_size: int = 64, 
     learning_rate: float = 1e-4
 ):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
-    print(f"\n--- Training {model_name} | Dataset: {Path(dataset_path).name} | l={l_value} ---")
+    device = torch.device('cuda' if torch.cuda.is_available() else 'mps')
+    print(f"\n--- Training Contrastive Network on: {dataset_path} ---")
 
+    # if model_name == 'resnet50':
+    #     base_encoder = ResNet50Encoder()
+    #     embed_dim, img_size = 2048, 224
+    # elif model_name == 'efficientnetb4':
     base_encoder = EfficientNetB4Encoder()
     embed_dim, img_size = 1792, 380
+    # elif model_name == 'xception':
+    #     base_encoder = XceptionEncoder()
+    #     embed_dim, img_size = 2048, 299
+
 
     model = ProjectionHeadWrapper(base_encoder, embedding_dim=embed_dim).to(device)
     unfreeze_last_n_layers(model, model_name, n=3)
@@ -133,7 +74,6 @@ def train_supcon(
     ])
 
     dataset = VariableLDataset(root=dataset_path, l_max=l_value, transform=transform)
-    print(f"Loaded {len(dataset)} total images (Originals + {l_value} Augs per original).")
     
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, drop_last=True)
 
@@ -164,7 +104,7 @@ def train_supcon(
     save_path = os.path.join(save_dir, f"{model_name}_{dataset_name}_l{l_value}.pth")
     
     torch.save(model.encoder.state_dict(), save_path)
-    print(f"Saved to: {save_path}")
+    print(f"saved to: {save_path}")
 
 if __name__ == "__main__":
     EXPERIMENTS_DIR = Path("./data/augmented_experiments")
@@ -172,8 +112,8 @@ if __name__ == "__main__":
     SAVE_DIR.mkdir(exist_ok=True)
     
     TARGET_DATASETS = [
-        # "10shot_50aug_standard_rotate", 
-        # "10shot_50aug_standard_mixed", 
+        "10shot_50aug_standard_rotate", 
+        "10shot_50aug_standard_mixed", 
         "10shot_50aug_advanced_mixed"
     ]
     
@@ -189,7 +129,7 @@ if __name__ == "__main__":
             expected_save_path = SAVE_DIR / f"efficientnetb4_{dataset_name}_l{l_val}.pth"
             
             if expected_save_path.exists():
-                print(f"Skipping efficientnetb4 on {dataset_name} with l={l_val}: Already trained!")
+                print(f"Skipping efficientnetb4 on {dataset_name} with l={l_val}: Already trained")
                 continue 
             
             train_supcon(

@@ -25,10 +25,6 @@ from torchvision.datasets.folder import default_loader
 from pathlib import Path
 
 class OriginalsOnlyDataset(VisionDataset):
-    """
-    A custom dataset that mimics ImageFolder but ONLY loads files 
-    that start with 'orig_', ignoring all augmented versions.
-    """
     def __init__(self, root, transform=None):
         super().__init__(root, transform=transform)
         self.classes = sorted([d.name for d in Path(root).iterdir() if d.is_dir()])
@@ -52,10 +48,7 @@ class OriginalsOnlyDataset(VisionDataset):
         return sample, target
 
 class PrototypicalEvaluator:
-    """
-    Evaluates a pretrained encoder using Prototypical Network logic.
-    Aligns with SupCon by strictly using L2-normalized embeddings.
-    """
+
     def __init__(self, encoder, device):
         self.encoder = encoder.to(device)
         self.encoder.eval()
@@ -65,7 +58,6 @@ class PrototypicalEvaluator:
 
     @torch.no_grad()
     def compute_prototypes(self, support_loader):
-        print("Computing class prototypes from the Support Set...")
         embeddings_list = []
         labels_list = []
 
@@ -96,15 +88,10 @@ class PrototypicalEvaluator:
             self.prototypes[i] = F.normalize(mean_embed.unsqueeze(0), p=2, dim=1).squeeze(0)
             
         self.prototypes = self.prototypes.to(self.device)
-        print(f"Computed {num_classes} prototypes of dimension {embed_dim}.")
 
     @torch.no_grad()
     def evaluate(self, query_loader):
-        if self.prototypes is None:
-            raise ValueError("Prototypes not computed. Call compute_prototypes() first.")
-            
-        print("Evaluating Query Set against Prototypes...")
-        
+
         all_preds = []
         all_labels = []
 
@@ -129,7 +116,7 @@ class PrototypicalEvaluator:
             'f1_score': f1_score(all_labels, all_preds, average='macro', zero_division=0) * 100
         }
         
-        print(f"Results -> Acc: {metrics['accuracy']:.2f}% | F1: {metrics['f1_score']:.2f}%")
+        print(f"Results - Acc: {metrics['accuracy']:.2f}% | F1: {metrics['f1_score']:.2f}%")
         return metrics
 
 
@@ -146,15 +133,9 @@ def run_evaluation(model_name: str, weights_path: str, support_dir: str, query_d
     elif model_name == 'xception':
         encoder = XceptionEncoder()
         img_size = 299
-    else:
-        raise ValueError("Invalid model name.")
 
-    if not os.path.exists(weights_path):
-        print(f"Weights not found at {weights_path}. Skipping.")
-        return None
 
     encoder.load_state_dict(torch.load(weights_path, map_location=device))
-    print(f"Loaded weights from {weights_path}")
 
     transform = transforms.Compose([
         transforms.Resize((img_size, img_size)),
@@ -176,9 +157,7 @@ def run_evaluation(model_name: str, weights_path: str, support_dir: str, query_d
         if class_counts[class_idx] <= images_per_class:
             subset_indices.append(idx)
             
-    print(f"Sub-sampled Validation Set: {len(subset_indices)} images total.")
     query_subset = Subset(full_query_dataset, subset_indices)
-
     query_loader = DataLoader(query_subset, batch_size=64, shuffle=False, num_workers=4, pin_memory=True)
 
     evaluator = PrototypicalEvaluator(encoder, device)
@@ -194,9 +173,6 @@ if __name__ == "__main__":
     RESULTS_CSV = "results/evaluation_results.csv"
     
     MODELS_TO_TEST = ['resnet50', 'efficientnetb4', 'xception']
-    
-    if not EXPERIMENTS_DIR.exists():
-        raise FileNotFoundError(f"Cannot find experiments directory: {EXPERIMENTS_DIR}")
         
     dataset_folders = [f for f in EXPERIMENTS_DIR.iterdir() if f.is_dir()]
     print(f"Found {len(dataset_folders)} experimental datasets. Starting evaluation...")
@@ -240,6 +216,5 @@ if __name__ == "__main__":
                         f.flush() 
                         
                 except Exception as e:
-                    print(f"Failed to evaluate {model_name} on {dataset_name}: {e}")
+                    print(f"Failed: {e}")
                     
-    print(f"\nAll done! Results saved to {RESULTS_CSV}")
