@@ -156,7 +156,7 @@ if __name__ == "__main__":
     MASTER_SUPPORT_DIR = Path("./data/augmented_experiments/50shot_0aug_baseline") 
     QUERY_DATA_DIR = './data/valid'                          
     WEIGHTS_DIR = Path("./pretrained_encoders_contrastive")
-    RESULTS_CSV = "evaluation_results_k_experiments.csv" 
+    RESULTS_CSV = "results/evaluation_results_k_experiments.csv" 
     
     K_VALUES = [5, 10, 15, 20, 30, 40, 50]
 

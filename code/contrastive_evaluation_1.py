@@ -208,7 +208,7 @@ if __name__ == "__main__":
     EXPERIMENTS_DIR = Path("./data/augmented_experiments") 
     QUERY_DATA_DIR = '/kaggle/input/cinic10/valid/'                          
     WEIGHTS_DIR = Path("./pretrained_encoders_contrastive")
-    RESULTS_CSV = "evaluation_results.csv" # <-- Where the results will be saved!
+    RESULTS_CSV = "results/evaluation_results.csv" # <-- Where the results will be saved!
     
     MODELS_TO_TEST = ['resnet50', 'efficientnetb4', 'xception']
     

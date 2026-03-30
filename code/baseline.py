@@ -110,7 +110,7 @@ if __name__ == "__main__":
     # --- Configuration ---
     MASTER_SUPPORT_DIR = Path("./data/augmented_experiments/50shot_0aug_baseline") 
     QUERY_DATA_DIR = 'data/valid/'                          
-    RESULTS_CSV = "evaluation_results_raw_pretrained_baseline.csv" 
+    RESULTS_CSV = "results/evaluation_results_raw_pretrained_baseline.csv" 
     
     K_VALUES = [5, 10, 15, 20, 30, 40, 50]
     IMG_SIZE = 380

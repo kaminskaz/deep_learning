@@ -149,11 +149,11 @@ if __name__ == "__main__":
     EXPERIMENTS_DIR = Path("./data/augmented_experiments") 
     QUERY_DATA_DIR = 'data/valid/'                          
     WEIGHTS_DIR = Path("./pretrained_encoders_contrastive")
-    RESULTS_CSV = "evaluation_results_phase2.csv"
+    RESULTS_CSV = "results/evaluation_results_phase2.csv"
     
     TARGET_DATASETS = [
-        # "10shot_50aug_standard_rotate", 
-        # "10shot_50aug_standard_mixed", 
+        "10shot_50aug_standard_rotate", 
+        "10shot_50aug_standard_mixed", 
         "10shot_50aug_advanced_mixed"
     ]
     L_VALUES = [0, 5, 15, 30, 50]
