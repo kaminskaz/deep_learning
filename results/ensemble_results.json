@@ -1,0 +1,127 @@
+[
+    {
+        "ensemble_name": "efficientnetb4 + resnet50 + xception",
+        "protocol": "standard_supervised",
+        "models_included": [
+            {
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 0.7128333449363708,
+                "weights_path": "../../saved_models/efficientnetb4/efficientnetb4_experiment_1_efficientnetb4_bs64_adam_lr0.001_regnone_lambda0.0_drop0.0.pth"
+            },
+            {
+                "architecture": "resnet50",
+                "csv_val_acc": 0.6916555762290955,
+                "weights_path": "../../saved_models/resnet50/resnet50_experiment_1_resnet50_bs64_adam_lr0.001_regnone_lambda0.0_drop0.0.pth"
+            },
+            {
+                "architecture": "xception",
+                "csv_val_acc": 0.625844419002533,
+                "weights_path": "../../saved_models/xception/xception_experiment_1_xception_bs32_adam_lr0.001_regnone_lambda0.0_drop0.0.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "precision": 0.8344883322715759,
+                "recall": 0.8330000638961792,
+                "f1_score": 0.832169234752655,
+                "accuracy": 0.8330000042915344
+            },
+            "hard_voting": {
+                "precision": 0.8281477093696594,
+                "recall": 0.8262222409248352,
+                "f1_score": 0.8255292177200317,
+                "accuracy": 0.8262222409248352
+            }
+        }
+    },
+    {
+        "ensemble_name": "efficientnetb4 + resnet50",
+        "protocol": "standard_supervised",
+        "models_included": [
+            {
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 0.7128333449363708,
+                "weights_path": "../../saved_models/efficientnetb4/efficientnetb4_experiment_1_efficientnetb4_bs64_adam_lr0.001_regnone_lambda0.0_drop0.0.pth"
+            },
+            {
+                "architecture": "resnet50",
+                "csv_val_acc": 0.6916555762290955,
+                "weights_path": "../../saved_models/resnet50/resnet50_experiment_1_resnet50_bs64_adam_lr0.001_regnone_lambda0.0_drop0.0.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "precision": 0.8365893959999084,
+                "recall": 0.8345555663108826,
+                "f1_score": 0.8341238498687744,
+                "accuracy": 0.8345555663108826
+            },
+            "hard_voting": {
+                "precision": 0.8374531865119934,
+                "recall": 0.835444450378418,
+                "f1_score": 0.8349823951721191,
+                "accuracy": 0.835444450378418
+            }
+        }
+    },
+    {
+        "ensemble_name": "efficientnetb4 + xception",
+        "protocol": "standard_supervised",
+        "models_included": [
+            {
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 0.7128333449363708,
+                "weights_path": "../../saved_models/efficientnetb4/efficientnetb4_experiment_1_efficientnetb4_bs64_adam_lr0.001_regnone_lambda0.0_drop0.0.pth"
+            },
+            {
+                "architecture": "xception",
+                "csv_val_acc": 0.625844419002533,
+                "weights_path": "../../saved_models/xception/xception_experiment_1_xception_bs32_adam_lr0.001_regnone_lambda0.0_drop0.0.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "precision": 0.8215011954307556,
+                "recall": 0.8197777271270752,
+                "f1_score": 0.8189181089401245,
+                "accuracy": 0.81977778673172
+            },
+            "hard_voting": {
+                "precision": 0.8213354349136353,
+                "recall": 0.8196666240692139,
+                "f1_score": 0.8187816739082336,
+                "accuracy": 0.8196666836738586
+            }
+        }
+    },
+    {
+        "ensemble_name": "resnet50 + xception",
+        "protocol": "standard_supervised",
+        "models_included": [
+            {
+                "architecture": "resnet50",
+                "csv_val_acc": 0.6916555762290955,
+                "weights_path": "../../saved_models/resnet50/resnet50_experiment_1_resnet50_bs64_adam_lr0.001_regnone_lambda0.0_drop0.0.pth"
+            },
+            {
+                "architecture": "xception",
+                "csv_val_acc": 0.625844419002533,
+                "weights_path": "../../saved_models/xception/xception_experiment_1_xception_bs32_adam_lr0.001_regnone_lambda0.0_drop0.0.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "precision": 0.7958204746246338,
+                "recall": 0.7938888669013977,
+                "f1_score": 0.7920154929161072,
+                "accuracy": 0.7938888669013977
+            },
+            "hard_voting": {
+                "precision": 0.7961289286613464,
+                "recall": 0.7940000295639038,
+                "f1_score": 0.7920394539833069,
+                "accuracy": 0.7940000295639038
+            }
+        }
+    }
+]

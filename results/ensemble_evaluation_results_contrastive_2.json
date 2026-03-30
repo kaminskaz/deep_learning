@@ -1,0 +1,140 @@
+[
+    {
+        "experiment_dataset": "10shot_50aug_advanced_mixed",
+        "ensemble_name": "efficientnetb4_L5 + efficientnetb4_L15 + efficientnetb4_L30",
+        "protocol": "few_shot_prototypical",
+        "models_included": [
+            {
+                "model_key": "efficientnetb4_L5",
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 57.18,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed_l5.pth"
+            },
+            {
+                "model_key": "efficientnetb4_L15",
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 57.14,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed_l15.pth"
+            },
+            {
+                "model_key": "efficientnetb4_L30",
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 57.06,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed_l30.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "accuracy": 57.65555555555556,
+                "precision": 60.63198772038469,
+                "recall": 57.65555555555555,
+                "f1_score": 57.91469755173415
+            },
+            "hard_voting": {
+                "accuracy": 57.34444444444444,
+                "precision": 60.29435142683963,
+                "recall": 57.344444444444456,
+                "f1_score": 57.56813435131335
+            }
+        }
+    },
+    {
+        "experiment_dataset": "10shot_50aug_advanced_mixed",
+        "ensemble_name": "efficientnetb4_L5 + efficientnetb4_L15",
+        "protocol": "few_shot_prototypical",
+        "models_included": [
+            {
+                "model_key": "efficientnetb4_L5",
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 57.18,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed_l5.pth"
+            },
+            {
+                "model_key": "efficientnetb4_L15",
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 57.14,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed_l15.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "accuracy": 57.53333333333334,
+                "precision": 60.321088549383425,
+                "recall": 57.53333333333334,
+                "f1_score": 57.78900466835337
+            },
+            "hard_voting": {
+                "accuracy": 56.3,
+                "precision": 59.88022445728917,
+                "recall": 56.3,
+                "f1_score": 56.573674430187815
+            }
+        }
+    },
+    {
+        "experiment_dataset": "10shot_50aug_advanced_mixed",
+        "ensemble_name": "efficientnetb4_L5 + efficientnetb4_L30",
+        "protocol": "few_shot_prototypical",
+        "models_included": [
+            {
+                "model_key": "efficientnetb4_L5",
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 57.18,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed_l5.pth"
+            },
+            {
+                "model_key": "efficientnetb4_L30",
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 57.06,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed_l30.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "accuracy": 57.77777777777777,
+                "precision": 60.836821128547726,
+                "recall": 57.77777777777777,
+                "f1_score": 58.0271634894739
+            },
+            "hard_voting": {
+                "accuracy": 56.35555555555556,
+                "precision": 60.15712624530772,
+                "recall": 56.35555555555556,
+                "f1_score": 56.567581380427235
+            }
+        }
+    },
+    {
+        "experiment_dataset": "10shot_50aug_advanced_mixed",
+        "ensemble_name": "efficientnetb4_L15 + efficientnetb4_L30",
+        "protocol": "few_shot_prototypical",
+        "models_included": [
+            {
+                "model_key": "efficientnetb4_L15",
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 57.14,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed_l15.pth"
+            },
+            {
+                "model_key": "efficientnetb4_L30",
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 57.06,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed_l30.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "accuracy": 57.45555555555556,
+                "precision": 60.32725225148538,
+                "recall": 57.45555555555556,
+                "f1_score": 57.678970065353695
+            },
+            "hard_voting": {
+                "accuracy": 56.18888888888889,
+                "precision": 59.85545748353971,
+                "recall": 56.18888888888889,
+                "f1_score": 56.422353880972075
+            }
+        }
+    }
+]

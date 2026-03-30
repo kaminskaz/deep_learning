@@ -14,8 +14,11 @@ from pathlib import Path
 from itertools import combinations
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-sys.path.append(os.path.abspath(os.path.join("../", os.getcwd(), "code")))
-# Custom module imports from your environment
+project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+from models.resnet50encoder import ResNet50Encoder
 from models.resnet50encoder import ResNet50Encoder
 from models.efficientnetb4encoder import EfficientNetB4Encoder
 from models.xceptionencoder import XceptionEncoder
@@ -57,30 +60,6 @@ def find_model_weights(saved_models_dir: str, row: pd.Series) -> str:
         return str(weights_file)
     
     raise FileNotFoundError(f"Missing weights at: {weights_file}")
-
-def test_get_best_models():
-    models_dir = "pretrained_encoders_contrastive"
-    csv_path1 = "evaluation_results.csv"
-    csv_path2 = "evaluation_results_phase2.csv"
-
-    df1 = get_best_models_from_csv(csv_path=csv_path1, top_k=1)
-    df2 = get_best_models_from_csv(csv_path=csv_path2, top_k=1)
-
-    print("--- Phase 1 Best ---")
-    print(df1)
-    for _, row in df1.iterrows():
-        try:
-            print(f"Weights found: {find_model_weights(models_dir, row)}")
-        except FileNotFoundError as e:
-            print(e)
-
-    print("\n--- Phase 2 Best ---")
-    print(df2)
-    for _, row in df2.iterrows():
-        try:
-            print(f"Weights found: {find_model_weights(models_dir, row)}")
-        except FileNotFoundError as e:
-            print(e)
 
 def get_query_subset_indices(query_dir: str, images_per_class: int = 900) -> list:
     """
@@ -201,7 +180,6 @@ def run_ensembles(experiments_dir: str, query_dir: str, weights_dir: str, hyperp
     device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
     print(f"Running Ensembles on {device}")
 
-    # 1. Get query subsets and parse best configs
     subset_indices = get_query_subset_indices(query_dir, images_per_class=900)
     print("Parsing best configurations from CSV...")
     best_configs = get_best_models_from_csv(hyperparams_csv)
@@ -209,7 +187,6 @@ def run_ensembles(experiments_dir: str, query_dir: str, weights_dir: str, hyperp
     dataset_folders = [f for f in Path(experiments_dir).iterdir() if f.is_dir()]
     ensemble_records = []
 
-    # 2. Iterate through each Few-Shot Experiment
     for dataset_path in dataset_folders:
         dataset_name = dataset_path.name
         print(f"\n{'='*50}\nEnsembling Experiment: {dataset_name}\n{'='*50}")
@@ -217,19 +194,25 @@ def run_ensembles(experiments_dir: str, query_dir: str, weights_dir: str, hyperp
         model_outputs = {}
         targets = None
         
-        # Extract predictions for all models
         for _, row in best_configs.iterrows():
-            model_name = row['model_name']
-            print(f"Loading best {model_name}...")
+            model_name = row['Model']
+            l_val = row.get('L_Value')
+            
+            if pd.notna(l_val):
+                model_key = f"{model_name}_L{int(l_val)}"
+            else:
+                model_key = model_name
+                
+            print(f"Loading best {model_key}...")
             
             try:
-                weights_path = find_model_weights(weights_dir, row, dataset_name)
+                weights_path = find_model_weights(weights_dir, row)
             except FileNotFoundError as e:
                 print(e)
                 continue
                 
             sims, labels = get_model_similarities(
-                model_name=model_name,
+                model_name=model_name,  
                 weights_path=weights_path,
                 support_dir=str(dataset_path),
                 query_dir=query_dir,
@@ -237,22 +220,27 @@ def run_ensembles(experiments_dir: str, query_dir: str, weights_dir: str, hyperp
                 device=device
             )
             
-            # For few-shot, 'probs' are the similarities, 'preds' are the argmax of those similarities
-            model_outputs[model_name] = {
+            preds = torch.argmax(sims, dim=1).numpy()
+            
+            current_acc = accuracy_score(labels, preds) * 100
+            
+            model_outputs[model_key] = {
                 "probs": sims,
-                "preds": torch.argmax(sims, dim=1),
+                "preds": torch.tensor(preds),
+                "current_acc": current_acc,
                 "config": row.to_dict(),
-                "weights_path": weights_path
+                "weights_path": weights_path,
+                "architecture": model_name
             }
             if targets is None:
-                targets = labels 
+                targets = labels
         
         if not model_outputs:
             print(f"No models successfully loaded for {dataset_name}. Skipping combinations.")
             continue
 
-        model_names = list(model_outputs.keys())
-        ensemble_combinations = [model_names] + list(combinations(model_names, 2)) if len(model_names) > 1 else [model_names]
+        model_keys = list(model_outputs.keys())
+        ensemble_combinations = [model_keys] + list(combinations(model_keys, 2)) if len(model_keys) > 1 else [model_keys]
 
         print(f"\nEvaluating Combinations for {dataset_name}...")
         for combo in ensemble_combinations:
@@ -274,8 +262,9 @@ def run_ensembles(experiments_dir: str, query_dir: str, weights_dir: str, hyperp
                 "protocol": "few_shot_prototypical",
                 "models_included": [
                     {
-                        "architecture": m,
-                        "csv_val_acc": model_outputs[m]["config"].get("val_accuracy", "N/A"),
+                        "model_key": m,
+                        "architecture": model_outputs[m]["architecture"],
+                        "current_val_acc": model_outputs[m]["current_acc"],
                         "weights_path": model_outputs[m]["weights_path"]
                     } for m in combo
                 ],
@@ -286,19 +275,18 @@ def run_ensembles(experiments_dir: str, query_dir: str, weights_dir: str, hyperp
             }
             ensemble_records.append(record)
 
-    # 5. Save to JSON
     with open(results_json_path, "w") as f:
         json.dump(ensemble_records, f, indent=4)
         
-    print(f"\n✅ Ensemble evaluation complete. Results saved to {results_json_path}")
+    print(f"\nEnsemble evaluation complete. Results saved to {results_json_path}")
 
 
 if __name__ == "__main__":
-    EXPERIMENTS_DIR = "data/augmented_experiments"
+    EXPERIMENTS_DIR = "../../data/augmented_experiments"
     src_path = kagglehub.dataset_download("mengcius/cinic10")
     QUERY_DATA_DIR = os.path.join(src_path, "valid")
-    WEIGHTS_DIR = "pretrained_encoders_contrastive" # The files expected by find_model_weights
-    HYPERPARAMS_CSV = "evaluation_results.csv" # The file parsed by get_best_models_from_csv
-    RESULTS_JSON = "ensemble_evaluation_results_contrastive.json"
-    
+    WEIGHTS_DIR = "../../pretrained_encoders_contrastive" 
+    HYPERPARAMS_CSV = "../../results/evaluation_results.csv" 
+    RESULTS_JSON = "../../results/ensemble_evaluation_results_contrastive_3.json"
+
     run_ensembles(EXPERIMENTS_DIR, QUERY_DATA_DIR, WEIGHTS_DIR, HYPERPARAMS_CSV, RESULTS_JSON)

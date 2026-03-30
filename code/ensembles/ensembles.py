@@ -1,29 +1,25 @@
-import json
-import os
-import json
 import glob
-import kagglehub
-import sys
-import torch
-import torch
-import torch.nn.functional as F
-from itertools import combinations
-from torchmetrics import Precision, Recall, F1Score, Accuracy
-import pandas as pd
-import torch.nn.functional as F
-from torchmetrics import Precision, Recall, F1Score, Accuracy
-from tqdm import tqdm
-from itertools import combinations
+import json
 import os
-from torchvision import datasets, transforms
+import sys
+from itertools import combinations
+
+import kagglehub
+import pandas as pd
+import torch
+import torch.nn.functional as F
 from torch.utils.data import DataLoader, Subset
+from torchmetrics import Accuracy, F1Score, Precision, Recall
+from torchvision import datasets, transforms
+from tqdm import tqdm
+
 current_dir = os.path.dirname(__file__)
 parent_dir = os.path.abspath(os.path.join(current_dir, ".."))
 sys.path.append(parent_dir)
 sys.path.append(os.path.join(parent_dir, "utils"))
 
-from utils import get_dataloader, seed_everything
-from prepare_summary_csv import build_model  
+from prepare_summary_csv import build_model
+from utils import seed_everything 
 
 def get_best_models_from_csv(csv_path: str, top_k: int = 1) -> pd.DataFrame:
     """
@@ -125,8 +121,6 @@ def evaluate_predictions(preds: torch.Tensor, targets: torch.Tensor, num_classes
         "accuracy": accuracy(preds, targets).item()
     }
 
-# --- DUMMY DATA GENERATORS ---
-
 def generate_dummy_predictions(num_samples: int, num_classes: int):
     """
     Simulates a model's output by generating random logits and converting them to probabilities.
@@ -136,25 +130,21 @@ def generate_dummy_predictions(num_samples: int, num_classes: int):
     _, preds = torch.max(probs, 1)
     return probs, preds
 
-def main():
-    # 1. Setup Dummy Parameters
+def main_dummy():
     num_samples = 150
     num_classes = 10
     ensemble_results_path = "dummy_ensemble_results.json"
     
     print(f"Generating dummy test data for {num_samples} samples across {num_classes} classes...\n")
-    
-    # Generate a single set of ground truth targets so all models are evaluated fairly
+ 
     targets = torch.randint(0, num_classes, (num_samples,))
     
-    # Define our mock "best models"
     mock_models = [
         {"model_name": "resnet50", "csv_val_acc": 0.85, "weights_path": "dummy/path/res.pth"},
         {"model_name": "efficientnetb4", "csv_val_acc": 0.88, "weights_path": "dummy/path/eff.pth"},
         {"model_name": "xception", "csv_val_acc": 0.86, "weights_path": "dummy/path/xcep.pth"}
     ]
 
-    # 2. Generate Dummy Predictions for each model
     model_outputs = {}
     for config in mock_models:
         model_name = config["model_name"]
@@ -166,13 +156,10 @@ def main():
             "config": config
         }
         
-        # Quick sanity check print
         acc = evaluate_predictions(preds, targets, num_classes)["accuracy"]
         print(f"{model_name} dummy accuracy: {acc:.4f} (expected to be ~0.10 since it's random)")
 
-    # 3. Generate Ensembles
     model_names = list(model_outputs.keys())
-    # Create combinations: all 3 together, plus pairwise combinations
     ensemble_combinations = [model_names] + list(combinations(model_names, 2))
     
     ensemble_records = []
@@ -185,15 +172,12 @@ def main():
         combo_probs = [model_outputs[m]["probs"] for m in combo]
         combo_preds = [model_outputs[m]["preds"] for m in combo]
         
-        # Soft Voting
         soft_preds = soft_voting(combo_probs)
         soft_metrics = evaluate_predictions(soft_preds, targets, num_classes)
         
-        # Hard Voting
         hard_preds = hard_voting(combo_preds, combo_probs)
         hard_metrics = evaluate_predictions(hard_preds, targets, num_classes)
         
-        # Store Record
         record = {
             "ensemble_name": combo_name,
             "protocol": "standard_supervised",
@@ -211,7 +195,6 @@ def main():
         }
         ensemble_records.append(record)
 
-    # 4. Save Results to JSON
     with open(ensemble_results_path, "w") as f:
         json.dump(ensemble_records, f, indent=4)
         
@@ -221,17 +204,14 @@ def get_subset_dataloader(data_path: str, img_size: int = 224, batch_size: int =
     """
     Creates a DataLoader containing a balanced subset of an ImageFolder dataset.
     """
-    # 1. Define transforms dynamically based on img_size
+
     transform = transforms.Compose([
         transforms.Resize((img_size, img_size)), 
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-    # 2. Load the full dataset
     full_dataset = datasets.ImageFolder(root=data_path, transform=transform)
-
-    # 3. Sub-sample images per class
     class_counts = {}
     subset_indices = []
 
@@ -242,7 +222,6 @@ def get_subset_dataloader(data_path: str, img_size: int = 224, batch_size: int =
 
     print(f"Sub-sampled Dataset from {data_path}: {len(subset_indices)} images total (max {images_per_class} per class).")
     
-    # 4. Create the subset and DataLoader
     dataset_subset = Subset(full_dataset, subset_indices)
     loader = DataLoader(
         dataset_subset, 
@@ -254,14 +233,14 @@ def get_subset_dataloader(data_path: str, img_size: int = 224, batch_size: int =
     
     return loader
 
-def main_real():
+def main():
     device = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
     seed = 42
     seed_everything(seed)
     
-    results_csv_path = "../../results.csv"
+    results_csv_path = "../../results/results.csv"
     saved_models_dir = "../../saved_models"
-    ensemble_results_path = "../../ensemble_results.json"
+    ensemble_results_path = "../../results/ensemble_results.json"
     num_classes = 10
     
     src_path = kagglehub.dataset_download("mengcius/cinic10")
@@ -305,7 +284,6 @@ def main_real():
         if targets is None:
             targets = targs 
 
-    # Create combinations: all 3 together, plus pairwise pairs
     model_names = list(model_outputs.keys())
     ensemble_combinations = [model_names] + list(combinations(model_names, 2))
     
