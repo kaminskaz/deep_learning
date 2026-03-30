@@ -1,0 +1,8 @@
+K_Value,Model,Accuracy,Precision,Recall,F1_Score
+5,efficientnetb4,70.77,72.01,70.77,70.26
+10,efficientnetb4,60.53,61.70,60.53,60.75
+15,efficientnetb4,63.14,64.44,63.14,63.14
+20,efficientnetb4,66.46,68.13,66.46,66.43
+30,efficientnetb4,69.32,70.91,69.32,69.42
+40,efficientnetb4,71.98,73.26,71.98,72.10
+50,efficientnetb4,70.97,72.72,70.97,71.18
