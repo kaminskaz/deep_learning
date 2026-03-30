@@ -1,4 +1,5 @@
 import os
+import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,9 +9,13 @@ from torchvision import datasets, transforms
 from torchvision.datasets.folder import default_loader
 from pathlib import Path
 
+project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
 from models.efficientnetb4encoder import EfficientNetB4Encoder
 
-# --- Keep your SupConLoss, ProjectionHeadWrapper, and unfreeze_last_n_layers exactly the same ---
+
 class SupConLoss(nn.Module):
     def __init__(self, temperature=0.07):
         super(SupConLoss, self).__init__()
@@ -48,7 +53,6 @@ def unfreeze_last_n_layers(model, model_name, n=3):
         for param in layer.parameters(): param.requires_grad = True
     for param in model.projection_head.parameters(): param.requires_grad = True
 
-# --- NEW: Variable K Dataset ---
 class VariableKDataset(datasets.VisionDataset):
     """
     Loads strictly the first 'k_max' original images per class from a target directory.
@@ -63,10 +67,8 @@ class VariableKDataset(datasets.VisionDataset):
             cls_dir = Path(root) / cls_name
             if not cls_dir.is_dir(): continue
                 
-            # Grab and SORT original files to guarantee nested subsets
             orig_files = sorted(list(cls_dir.glob("orig_*")))
             
-            # Slice strictly up to k_max
             for orig_path in orig_files[:k_max]:
                 self.samples.append((str(orig_path), self.class_to_idx[cls_name]))
 
@@ -80,7 +82,7 @@ class VariableKDataset(datasets.VisionDataset):
             sample = self.transform(sample)
         return sample, target
 
-# --- Training Loop ---
+
 def train_supcon_k_experiment(
     dataset_path: str, 
     k_value: int,
@@ -104,11 +106,9 @@ def train_supcon_k_experiment(
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-    # Use the new dataset that slices K
     dataset = VariableKDataset(root=dataset_path, k_max=k_value, transform=transform)
     print(f"Loaded {len(dataset)} total images ({k_value} per class).")
-    
-    # Drop_last=False might be necessary here if batch_size > len(dataset)
+
     drop_last = len(dataset) > batch_size
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, drop_last=drop_last)
 
@@ -136,7 +136,6 @@ def train_supcon_k_experiment(
     save_dir = "./pretrained_encoders_contrastive"
     os.makedirs(save_dir, exist_ok=True)
     
-    # Save with naming convention clearly identifying the k value
     save_path = os.path.join(save_dir, f"{model_name}_baseline_k{k_value}.pth")
     
     torch.save(model.encoder.state_dict(), save_path)
@@ -144,8 +143,6 @@ def train_supcon_k_experiment(
 
 if __name__ == "__main__":
     EXPERIMENTS_DIR = Path("./data/augmented_experiments")
-    
-    # This must match the folder generated in Step 1
     MASTER_DATASET_PATH = EXPERIMENTS_DIR / "50shot_0aug_baseline" 
     
     if not MASTER_DATASET_PATH.exists():
@@ -157,13 +154,13 @@ if __name__ == "__main__":
         expected_save_path = Path(f"./pretrained_encoders_contrastive/efficientnetb4_baseline_k{k_val}.pth")
         
         if expected_save_path.exists():
-            print(f"⏩ Skipping K={k_val}: Already trained!")
+            print(f"Skipping K={k_val}: Already trained!")
             continue 
         
         train_supcon_k_experiment(
             dataset_path=str(MASTER_DATASET_PATH),
             k_value=k_val,
             epochs=20, 
-            batch_size=32, # Ensure batch size isn't larger than total photos for k=5 (5*classes)
+            batch_size=32,
             learning_rate=1e-4
         )

@@ -28,7 +28,6 @@ def generate_isolated_dataset(
     aug_name: str = 'random', 
     seed: int = 42
 ):
-    # 1. Set seeds first
     random.seed(seed)
     np.random.seed(seed)
     
@@ -47,30 +46,23 @@ def generate_isolated_dataset(
         cls_target_dir = target_path / cls
         cls_target_dir.mkdir(parents=True, exist_ok=True)
         
-        # 2. CRITICAL: Sort the list so the seed always points to the same index
         all_images = list(cls_source_dir.glob("*.png")) + list(cls_source_dir.glob("*.jpg"))
         all_images.sort() 
         
         if len(all_images) < k:
             continue
-            
-        # 3. Sample immediately after setting/resetting seed logic if needed
-        # Since we set seed at the start of the function, and we process classes 
-        # in a sorted order, the 'random state' will be identical for every run.
+
         k_images = random.sample(all_images, k)
         
-        # Save originals
         for img_path in k_images:
             shutil.copy(img_path, cls_target_dir / f"orig_{img_path.name}")
             
-        # 4. Now initialize augmentation (after sampling is done)
         advanced_aug = None
         if method == 'advanced':
             advanced_aug = Augmentor(p=1.0, seed=seed)
             
         aug_choices = ['rotate', 'blur', 'noise', 'brightness', 'flip']
 
-        # Generate augmented samples
         for i in range(l):
             base_img_path = random.choice(k_images)
             image = cv2.imread(str(base_img_path))

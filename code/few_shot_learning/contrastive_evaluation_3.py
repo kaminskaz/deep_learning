@@ -1,4 +1,5 @@
 import os
+import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,12 +12,12 @@ from pathlib import Path
 import csv
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
+project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+if project_root not in sys.path:
+    sys.path.append(project_root)
 
 from models.efficientnetb4encoder import EfficientNetB4Encoder
-from models.xceptionencoder import XceptionEncoder
-from models.resnet50encoder import ResNet50Encoder
 
-# --- 1. The K-Restricted Support Dataset ---
 class VariableKSupportDataset(VisionDataset):
     """
     Strictly loads the first 'k_max' original images per class to build prototypes.
@@ -44,7 +45,6 @@ class VariableKSupportDataset(VisionDataset):
             sample = self.transform(sample)
         return sample, target
 
-# --- 2. Prototypical Evaluator ---
 class PrototypicalEvaluator:
     def __init__(self, encoder, device):
         self.encoder = encoder.to(device)
@@ -55,10 +55,11 @@ class PrototypicalEvaluator:
 
     @torch.no_grad()
     def compute_prototypes(self, support_loader):
+        print("Computing class prototypes from the Support Set...")
         embeddings_list = []
         labels_list = []
 
-        for images, labels in tqdm(support_loader, desc="Extracting Prototypes", leave=False):
+        for images, labels in tqdm(support_loader, desc="Extracting Support Features"):
             images = images.to(self.device)
             embeddings = F.normalize(self.encoder(images), p=2, dim=1)
             embeddings_list.append(embeddings.cpu())
@@ -88,7 +89,7 @@ class PrototypicalEvaluator:
         all_preds = []
         all_labels = []
 
-        for images, labels in tqdm(query_loader, desc="Evaluating Query Set", leave=False):
+        for images, labels in tqdm(query_loader, desc="Evaluating Query Set"):
             images, labels = images.to(self.device), labels.to(self.device)
             embeddings = F.normalize(self.encoder(images), p=2, dim=1)
             
@@ -106,35 +107,30 @@ class PrototypicalEvaluator:
             'f1_score': f1_score(all_labels, all_preds, average='macro', zero_division=0) * 100
         }
 
-if __name__ == "__main__":
-    # --- Configuration ---
-    MASTER_SUPPORT_DIR = Path("./data/augmented_experiments/50shot_0aug_baseline") 
-    QUERY_DATA_DIR = 'data/valid/'                          
-    RESULTS_CSV = "results/evaluation_results_raw_pretrained_baseline.csv" 
-    
-    K_VALUES = [5, 10, 15, 20, 30, 40, 50]
-    IMG_SIZE = 380
-
-    if not MASTER_SUPPORT_DIR.exists():
-        raise FileNotFoundError(f"Missing master support directory: {MASTER_SUPPORT_DIR}")
-
+def run_k_evaluation(k_val: int, weights_path: str, support_dir: str, query_dir: str):
     device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
-    print(f"\n--- Initializing Raw Pretrained Xception on {device} ---")
+    print(f"\n--- Evaluating EfficientNet-B4 | K={k_val} on {device} ---")
 
-    # 1. Load the model WITHOUT loading custom contrastive weights
-    encoder = XceptionEncoder().to(device)
-    encoder.eval()
+    encoder = EfficientNetB4Encoder()
+    img_size = 380
 
-    # 2. Setup transforms
+    if not os.path.exists(weights_path):
+        print(f"Weights not found at {weights_path}. Skipping.")
+        return None 
+
+    encoder.load_state_dict(torch.load(weights_path, map_location=device, weights_only=True))
+    
     transform = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
+        transforms.Resize((img_size, img_size)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-    # 3. Load the Query (Validation) Set ONCE to save time
-    print("\nPreparing balanced 10% query set...")
-    full_query_dataset = datasets.ImageFolder(root=QUERY_DATA_DIR, transform=transform)
+    support_dataset = VariableKSupportDataset(root=support_dir, k_max=k_val, transform=transform)
+    print(f"Support set size: {len(support_dataset)} images ({k_val} per class).")
+    support_loader = DataLoader(support_dataset, batch_size=32, shuffle=False, num_workers=4, pin_memory=True)
+
+    full_query_dataset = datasets.ImageFolder(root=query_dir, transform=transform)
     images_per_class = 900 
     class_counts = {}
     subset_indices = []
@@ -146,42 +142,56 @@ if __name__ == "__main__":
             
     query_subset = Subset(full_query_dataset, subset_indices)
     query_loader = DataLoader(query_subset, batch_size=64, shuffle=False, num_workers=4, pin_memory=True)
-    print(f"Query set ready: {len(query_subset)} total images.")
 
-    # Instantiate evaluator
     evaluator = PrototypicalEvaluator(encoder, device)
+    evaluator.compute_prototypes(support_loader)
+    metrics = evaluator.evaluate(query_loader)
+    
+    print(f"Results for K={k_val} -> Acc: {metrics['accuracy']:.2f}% | F1: {metrics['f1_score']:.2f}%")
+    return metrics
 
-    # 4. Run Evaluation Loop
-    with open(RESULTS_CSV, mode='a', newline='') as f:
+if __name__ == "__main__":
+    MASTER_SUPPORT_DIR = Path("./data/augmented_experiments/50shot_0aug_baseline") 
+    QUERY_DATA_DIR = './data/valid'                          
+    WEIGHTS_DIR = Path("./pretrained_encoders_contrastive")
+    RESULTS_CSV = "results/evaluation_results_k_experiments.csv" 
+    
+    K_VALUES = [5, 10, 15, 20, 30, 40, 50]
+
+    if not MASTER_SUPPORT_DIR.exists():
+        raise FileNotFoundError(f"Missing master support directory: {MASTER_SUPPORT_DIR}")
+
+    with open(RESULTS_CSV, mode='w', newline='') as f:
         writer = csv.writer(f)
-        # writer.writerow(['K_Value', 'Model', 'Accuracy', 'Precision', 'Recall', 'F1_Score'])
+        writer.writerow(['K_Value', 'Model', 'Accuracy', 'Precision', 'Recall', 'F1_Score'])
 
         for k_val in K_VALUES:
             print(f"\n{'='*50}")
-            print(f"Evaluating Raw Pretrained Weights with K={k_val}")
+            print(f"Evaluating Baseline Set with K={k_val}")
+            print(f"{'='*50}")
             
-            # Load only the specific K subset for the support set
-            support_dataset = VariableKSupportDataset(root=str(MASTER_SUPPORT_DIR), k_max=k_val, transform=transform)
-            support_loader = DataLoader(support_dataset, batch_size=32, shuffle=False, num_workers=4, pin_memory=True)
+            weights_file = WEIGHTS_DIR / f"efficientnetb4_baseline_k{k_val}.pth"
                 
             try:
-                # Recompute prototypes for the new K and evaluate
-                evaluator.compute_prototypes(support_loader)
-                metrics = evaluator.evaluate(query_loader)
+                metrics = run_k_evaluation(
+                    k_val=k_val,
+                    weights_path=str(weights_file),
+                    support_dir=str(MASTER_SUPPORT_DIR), 
+                    query_dir=QUERY_DATA_DIR         
+                )
                 
-                print(f"✅ Results for K={k_val} -> Acc: {metrics['accuracy']:.2f}% | F1: {metrics['f1_score']:.2f}%")
-                
-                writer.writerow([
-                    k_val, 
-                    'xception_raw_pretrained', 
-                    f"{metrics['accuracy']:.2f}", 
-                    f"{metrics['precision']:.2f}", 
-                    f"{metrics['recall']:.2f}", 
-                    f"{metrics['f1_score']:.2f}"
-                ])
-                f.flush() 
+                if metrics:
+                    writer.writerow([
+                        k_val, 
+                        'efficientnetb4', 
+                        f"{metrics['accuracy']:.2f}", 
+                        f"{metrics['precision']:.2f}", 
+                        f"{metrics['recall']:.2f}", 
+                        f"{metrics['f1_score']:.2f}"
+                    ])
+                    f.flush() 
                     
             except Exception as e:
-                print(f"❌ Failed to evaluate K={k_val}: {e}")
+                print(f"Failed to evaluate K={k_val}: {e}")
                     
-    print(f"\n🎉 All done! Baseline results saved to {RESULTS_CSV}")
+    print(f"\nAll done! Results saved to {RESULTS_CSV}")

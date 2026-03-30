@@ -31,7 +31,7 @@ def generate_50shot_baseline(source_dir: str, target_dir: str, seed: int = 42):
         for img_path in k_images:
             shutil.copy(img_path, cls_target_dir / f"orig_{img_path.name}")
 
-    print(f"✅ Saved to: {target_path}")
+    print(f"Saved to: {target_path}")
 
 if __name__ == "__main__":
     generate_50shot_baseline(source_dir="./data/train", target_dir="./data/augmented_experiments")

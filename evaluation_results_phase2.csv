@@ -1,6 +1,0 @@
-Experiment,Model,L_Value,Accuracy,Precision,Recall,F1_Score
-10shot_50aug_advanced_mixed,efficientnetb4,0,54.71,61.14,54.71,54.86
-10shot_50aug_advanced_mixed,efficientnetb4,5,54.63,60.88,54.63,54.98
-10shot_50aug_advanced_mixed,efficientnetb4,15,54.31,60.74,54.31,54.40
-10shot_50aug_advanced_mixed,efficientnetb4,30,53.90,59.97,53.90,54.17
-10shot_50aug_advanced_mixed,efficientnetb4,50,56.04,61.55,56.04,56.32

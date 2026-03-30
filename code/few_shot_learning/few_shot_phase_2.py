@@ -1,4 +1,5 @@
 import os
+import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,7 +8,10 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from torchvision.datasets.folder import default_loader
 from pathlib import Path
-
+    
+project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+if project_root not in sys.path:
+    sys.path.append(project_root)
 from models.efficientnetb4encoder import EfficientNetB4Encoder
 
 class SupConLoss(nn.Module):
@@ -178,14 +182,14 @@ if __name__ == "__main__":
     for dataset_name in TARGET_DATASETS:
         dataset_path = EXPERIMENTS_DIR / dataset_name
         if not dataset_path.exists():
-            print(f"⚠️ Missing dataset: {dataset_path}. Skipping.")
+            print(f"Missing dataset: {dataset_path}. Skipping.")
             continue
             
         for l_val in L_VALUES:
             expected_save_path = SAVE_DIR / f"efficientnetb4_{dataset_name}_l{l_val}.pth"
             
             if expected_save_path.exists():
-                print(f"⏩ Skipping efficientnetb4 on {dataset_name} with l={l_val}: Already trained!")
+                print(f"Skipping efficientnetb4 on {dataset_name} with l={l_val}: Already trained!")
                 continue 
             
             train_supcon(
