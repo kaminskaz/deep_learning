@@ -1,6 +1,7 @@
 import argparse
 import copy
 import os
+from time import time
 import torchvision
 import torch
 import torch.nn as nn
@@ -46,6 +47,7 @@ def train(
     best_weights = None
 
     model = model.to(device)
+    # model = torch.compile(model)
 
     for epoch in range(1, num_epochs + 1):
         running_loss = 0.0
@@ -72,7 +74,7 @@ def train(
             loop.set_postfix(
                 loss=f"{running_loss / (total / inputs.size(0)):.4f}",
             )
-            
+
         train_loss = running_loss / len(train_loader.dataset)
         train_acc = correct / total
         val_loss, val_acc = evaluate(model, val_loader, criterion, device)

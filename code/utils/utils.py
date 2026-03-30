@@ -56,7 +56,7 @@ def get_dataloader(
         batch_size=batch_size, 
         shuffle=(split=='train'), 
         pin_memory=True,
-        num_workers=4,
+        num_workers=6,
         persistent_workers=True if split=='train' else False
     )
 

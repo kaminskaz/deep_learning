@@ -5,7 +5,7 @@ from pathlib import Path
 config_dir = Path("./code/configs")
 script_to_run = Path("./code/train.py")
 
-config_files = list(config_dir.glob("experiment_1*.yaml"))
+config_files = list(config_dir.glob("*experiment_1*.yaml"))
 
 if not config_files:
     print(f"No matching YAML files found in {config_dir}")
