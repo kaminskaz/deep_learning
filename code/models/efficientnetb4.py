@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch
 
 class EfficientNetB4(nn.Module):
-    def __init__(self, num_classes=10, dropout_rate=0.3):
+    def __init__(self, num_classes=10, dropout_rate=0.5):
         super().__init__()
         self.model = models.efficientnet_b4(pretrained=False)
 
