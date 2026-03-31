@@ -1,0 +1,131 @@
+[
+    {
+        "experiment_dataset": "10shot_50aug_advanced_mixed",
+        "ensemble_name": "efficientnetb4 + resnet50 + xception",
+        "protocol": "few_shot_prototypical",
+        "models_included": [
+            {
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 60.57,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed.pth"
+            },
+            {
+                "architecture": "resnet50",
+                "csv_val_acc": 36.3,
+                "weights_path": "../../pretrained_encoders_contrastive/resnet50_10shot_50aug_advanced_mixed.pth"
+            },
+            {
+                "architecture": "xception",
+                "csv_val_acc": 60.58,
+                "weights_path": "../../pretrained_encoders_contrastive/xception_10shot_50aug_advanced_mixed.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "accuracy": 65.08888888888889,
+                "precision": 66.75204249080457,
+                "recall": 65.08888888888889,
+                "f1_score": 65.20622548282569
+            },
+            "hard_voting": {
+                "accuracy": 60.988888888888894,
+                "precision": 63.202685018693685,
+                "recall": 60.988888888888894,
+                "f1_score": 61.1217014945457
+            }
+        }
+    },
+    {
+        "experiment_dataset": "10shot_50aug_advanced_mixed",
+        "ensemble_name": "efficientnetb4 + resnet50",
+        "protocol": "few_shot_prototypical",
+        "models_included": [
+            {
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 60.57,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed.pth"
+            },
+            {
+                "architecture": "resnet50",
+                "csv_val_acc": 36.3,
+                "weights_path": "../../pretrained_encoders_contrastive/resnet50_10shot_50aug_advanced_mixed.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "accuracy": 59.42222222222222,
+                "precision": 60.90851729967073,
+                "recall": 59.42222222222222,
+                "f1_score": 59.42489353365122
+            },
+            "hard_voting": {
+                "accuracy": 50.6,
+                "precision": 55.13850776684881,
+                "recall": 50.6,
+                "f1_score": 49.84816268687773
+            }
+        }
+    },
+    {
+        "experiment_dataset": "10shot_50aug_advanced_mixed",
+        "ensemble_name": "efficientnetb4 + xception",
+        "protocol": "few_shot_prototypical",
+        "models_included": [
+            {
+                "architecture": "efficientnetb4",
+                "csv_val_acc": 60.57,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed.pth"
+            },
+            {
+                "architecture": "xception",
+                "csv_val_acc": 60.58,
+                "weights_path": "../../pretrained_encoders_contrastive/xception_10shot_50aug_advanced_mixed.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "accuracy": 67.13333333333334,
+                "precision": 68.49924765480216,
+                "recall": 67.13333333333334,
+                "f1_score": 67.19794239328863
+            },
+            "hard_voting": {
+                "accuracy": 61.355555555555554,
+                "precision": 64.59749363841169,
+                "recall": 61.35555555555556,
+                "f1_score": 61.61372751181208
+            }
+        }
+    },
+    {
+        "experiment_dataset": "10shot_50aug_advanced_mixed",
+        "ensemble_name": "resnet50 + xception",
+        "protocol": "few_shot_prototypical",
+        "models_included": [
+            {
+                "architecture": "resnet50",
+                "csv_val_acc": 36.3,
+                "weights_path": "../../pretrained_encoders_contrastive/resnet50_10shot_50aug_advanced_mixed.pth"
+            },
+            {
+                "architecture": "xception",
+                "csv_val_acc": 60.58,
+                "weights_path": "../../pretrained_encoders_contrastive/xception_10shot_50aug_advanced_mixed.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "accuracy": 57.72222222222222,
+                "precision": 61.387846912403035,
+                "recall": 57.72222222222222,
+                "f1_score": 57.97310992961637
+            },
+            "hard_voting": {
+                "accuracy": 49.77777777777778,
+                "precision": 54.81496026014662,
+                "recall": 49.77777777777778,
+                "f1_score": 49.781257925026594
+            }
+        }
+    }
+]

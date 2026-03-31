@@ -1,0 +1,140 @@
+[
+    {
+        "experiment_dataset": "10shot_50aug_standard_rotate",
+        "ensemble_name": "efficientnetb4 + resnet50 + xception",
+        "protocol": "few_shot_prototypical",
+        "models_included": [
+            {
+                "model_key": "efficientnetb4",
+                "architecture": "efficientnetb4",
+                "current_val_acc": 78.92222222222223,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed.pth"
+            },
+            {
+                "model_key": "resnet50",
+                "architecture": "resnet50",
+                "current_val_acc": 39.83333333333333,
+                "weights_path": "../../pretrained_encoders_contrastive/resnet50_10shot_50aug_advanced_mixed.pth"
+            },
+            {
+                "model_key": "xception",
+                "architecture": "xception",
+                "current_val_acc": 59.044444444444444,
+                "weights_path": "../../pretrained_encoders_contrastive/xception_10shot_50aug_advanced_mixed.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "accuracy": 73.24444444444444,
+                "precision": 75.44193740193649,
+                "recall": 73.24444444444444,
+                "f1_score": 73.20446405705667
+            },
+            "hard_voting": {
+                "accuracy": 67.65555555555555,
+                "precision": 70.47373361403169,
+                "recall": 67.65555555555555,
+                "f1_score": 67.85060173148516
+            }
+        }
+    },
+    {
+        "experiment_dataset": "10shot_50aug_standard_rotate",
+        "ensemble_name": "efficientnetb4 + resnet50",
+        "protocol": "few_shot_prototypical",
+        "models_included": [
+            {
+                "model_key": "efficientnetb4",
+                "architecture": "efficientnetb4",
+                "current_val_acc": 78.92222222222223,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed.pth"
+            },
+            {
+                "model_key": "resnet50",
+                "architecture": "resnet50",
+                "current_val_acc": 39.83333333333333,
+                "weights_path": "../../pretrained_encoders_contrastive/resnet50_10shot_50aug_advanced_mixed.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "accuracy": 74.6111111111111,
+                "precision": 77.09997425149184,
+                "recall": 74.61111111111111,
+                "f1_score": 74.78619086296675
+            },
+            "hard_voting": {
+                "accuracy": 56.96666666666667,
+                "precision": 65.09754793468106,
+                "recall": 56.966666666666676,
+                "f1_score": 56.53485473398272
+            }
+        }
+    },
+    {
+        "experiment_dataset": "10shot_50aug_standard_rotate",
+        "ensemble_name": "efficientnetb4 + xception",
+        "protocol": "few_shot_prototypical",
+        "models_included": [
+            {
+                "model_key": "efficientnetb4",
+                "architecture": "efficientnetb4",
+                "current_val_acc": 78.92222222222223,
+                "weights_path": "../../pretrained_encoders_contrastive/efficientnetb4_10shot_50aug_advanced_mixed.pth"
+            },
+            {
+                "model_key": "xception",
+                "architecture": "xception",
+                "current_val_acc": 59.044444444444444,
+                "weights_path": "../../pretrained_encoders_contrastive/xception_10shot_50aug_advanced_mixed.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "accuracy": 76.45555555555555,
+                "precision": 77.82897534563762,
+                "recall": 76.45555555555555,
+                "f1_score": 76.29158144903188
+            },
+            "hard_voting": {
+                "accuracy": 70.78888888888889,
+                "precision": 73.83755075661836,
+                "recall": 70.78888888888889,
+                "f1_score": 71.00127673073598
+            }
+        }
+    },
+    {
+        "experiment_dataset": "10shot_50aug_standard_rotate",
+        "ensemble_name": "resnet50 + xception",
+        "protocol": "few_shot_prototypical",
+        "models_included": [
+            {
+                "model_key": "resnet50",
+                "architecture": "resnet50",
+                "current_val_acc": 39.83333333333333,
+                "weights_path": "../../pretrained_encoders_contrastive/resnet50_10shot_50aug_advanced_mixed.pth"
+            },
+            {
+                "model_key": "xception",
+                "architecture": "xception",
+                "current_val_acc": 59.044444444444444,
+                "weights_path": "../../pretrained_encoders_contrastive/xception_10shot_50aug_advanced_mixed.pth"
+            }
+        ],
+        "results": {
+            "soft_voting": {
+                "accuracy": 56.08888888888889,
+                "precision": 59.60265502957417,
+                "recall": 56.08888888888889,
+                "f1_score": 55.70675516770846
+            },
+            "hard_voting": {
+                "accuracy": 47.62222222222222,
+                "precision": 53.978079196221195,
+                "recall": 47.62222222222221,
+                "f1_score": 47.198060729393795
+            }
+        }
+    }
+]

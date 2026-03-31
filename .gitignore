@@ -6,4 +6,6 @@ saved_models/
 *log*
 saved_models/
 test.ipynb
-configs_moved/
+code/tempCodeRunnerFile.py
+.gitignore
+*.pth
