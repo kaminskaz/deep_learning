@@ -1,17 +1,63 @@
 import os
 import sys
+from typing import Optional
+from torch.utils.data import DataLoader, Subset
+import numpy as np
 import pandas as pd
 import torch
 from torchmetrics import Precision, Recall, F1Score, Accuracy
 from tqdm import tqdm
+import torchvision
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(parent_dir)
 
-from utils import get_dataloader, seed_everything
+from configs.config import AugmentorConfig
+from augmentations.dataset_wrapper import DatasetWrapper
+from utils import seed_everything
 from models.resnet50 import ResNet50
 from models.xception import Xception
 from models.efficientnetb4 import EfficientNetB4
+
+def get_dataloader(
+        directory: str, 
+        split: str, 
+        batch_size: int,
+        preset: Optional[str] = None,
+        augmentor_config: Optional[AugmentorConfig] = None,
+        seed: int = 42
+    ) -> DataLoader:
+
+    full_dataset = torchvision.datasets.ImageFolder(directory)
+
+    targets = np.array(full_dataset.targets)
+    selected_indices = []
+    
+    for class_idx in range(len(full_dataset.classes)):
+        class_indices = np.where(targets == class_idx)[0]
+        selected_indices.extend(class_indices[:900])
+
+    selected_indices = sorted(selected_indices)
+    subset_dataset = Subset(full_dataset, selected_indices)
+
+    wrapped_dataset = DatasetWrapper(
+        dataset=subset_dataset,
+        split=split,
+        preset=preset,
+        augmentor_config=augmentor_config,
+        seed=seed
+    )
+
+    data_loader = DataLoader(
+        wrapped_dataset,
+        batch_size=batch_size, 
+        shuffle=(split == 'train'), 
+        pin_memory=True,
+        num_workers=6,
+        persistent_workers=True if split == 'train' else False
+    )
+
+    return data_loader
 
 def build_model(model_name: str, num_classes: int, dropout_rate: float = 0.0) -> torch.nn.Module: 
     models = {
@@ -59,12 +105,13 @@ def main():
     batch_size = 64
     seed_everything(seed)
     saved_models_dir = "saved_models"
-    results_csv_path = "results.csv"
+    results_csv_path = "results_new.csv"
 
     print("Dataloader preparation...")
+
     # ── dataloader ────────────────────────────────────────────
     val_loader = get_dataloader(
-        directory="data/valid",
+        directory="data/test",
         split='val',
         batch_size=batch_size,
         seed=seed
@@ -79,26 +126,23 @@ def main():
             continue
 
         for file in os.listdir(model_path):
-            if "drop" in file:
-                continue
-
             if file.endswith(".pth"):
+                if "resnet50" not in file:
+                    continue
                 print(f"Processing {file}...")
                 full_path = os.path.join(model_path, file)
                 
-                # ex. efficientnetb4_experiment_1_efficientnet4b_bs32_adam_lr0.001.pth
-                name_parts = file[:-4].split("_")  # Remove .pth and split by "_"
-                
-                # Extract parameters (customize depending on your naming convention)
+                name_parts = file[:-4].split("_")
+
                 try:
                     model_name = name_parts[0]  
                     experiment_num = int(name_parts[2] )
                     batch_size = int(name_parts[4].replace("bs", ""))
                     optimizer = name_parts[5]
                     lr = float(name_parts[6].replace("lr", ""))
-                    dropout = 0.0
-                    regularization = "none"
-                    lambda_value = 0.0
+                    dropout = float(name_parts[9].replace("drop", ""))
+                    regularization = name_parts[7].replace("reg", "")
+                    lambda_value = float(name_parts[8].replace("lambda", ""))
 
                 except IndexError:
                     print(f"Filename {file} doesn't match expected pattern. Skipping...")
@@ -116,7 +160,6 @@ def main():
 
                 num_epochs = len(history['train_loss'])
 
-                # Save row for CSV
                 row = {
                     "model_name": model_name,
                     "experiment": experiment_num,
@@ -138,16 +181,16 @@ def main():
 
                 df.to_csv(
                     results_csv_path,
-                    mode='a',              # append
-                    header=not os.path.exists(results_csv_path),  # write header only once
+                    mode='a',             
+                    header=not os.path.exists(results_csv_path),  
                     index=False
                 )
 
-                new_name = f"{file[:-4]}_reg{regularization}_lambda{lambda_value}_drop{dropout}.pth"
-                new_full_path = os.path.join(model_path, new_name)
+                # new_name = f"{file[:-4]}_reg{regularization}_lambda{lambda_value}_drop{dropout}.pth"
+                # new_full_path = os.path.join(model_path, new_name)
                 
-                os.rename(full_path, new_full_path)
-                print(f"Renamed to {new_name}")
+                # os.rename(full_path, new_full_path)
+                # print(f"Renamed to {new_name}")
 
 
 if __name__ == "__main__":
